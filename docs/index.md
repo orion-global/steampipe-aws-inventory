@@ -1,3 +1,7 @@
+---
+repository: "https://github.com/turbot/steampipe-mod-aws-insights"
+---
+
 # AWS Inventory Mod for Steampipe
 
 An AWS dashboarding tool that can be used to view dashboards and reports across all of your AWS accounts focused on inventory and configuration.
