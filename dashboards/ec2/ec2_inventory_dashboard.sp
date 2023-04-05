@@ -1,3 +1,7 @@
+#---------------------------------------------------------------------------------------------------------
+# Dashboard: ec2_inventory_dashboard
+#---------------------------------------------------------------------------------------------------------
+
 dashboard "ec2_instance_dashboard" {
 
   title         = "Inventario de instancias (EC2)"
@@ -7,33 +11,122 @@ dashboard "ec2_instance_dashboard" {
     type = "Inventory"
   })
 
+  input "instance_arn" {
+    title = "Selecciona una cuenta: "
+    query = query.ec2_instance_input
+    width = 4
+  }
+
+  # Indicadores
   container {
     card {
       query = query.ec2_instance_count
       width = 2
+      args  = [self.input.instance_arn.value]
     }
   }
 
+  # Resumen
+  container {
+    table {
+      query = query.ec2_instance_type_count
+      width = 3
+      args  = [self.input.instance_arn.value]
+    }
+
+    table {
+      query = query.ec2_instance_region_count
+      width = 3
+      args  = [self.input.instance_arn.value]
+    }
+
+    table {
+      query = query.ec2_instance_subnet_count
+      width = 3
+      args  = [self.input.instance_arn.value]
+    }
+  }
+
+
+  # Detalles
   container {
     title = "Detalles"
-
 
     table {
       query = query.ec2_instance_details
       width = 12
+      args  = [self.input.instance_arn.value]
     }
   }
 
 }
 
-# Card Queries
+#---------------------------------------------------------------------------------------------------------
+# Queries
+#---------------------------------------------------------------------------------------------------------
 
-query "ec2_instance_count" {
+# Input
+query "ec2_instance_input" {
   sql = <<-EOQ
-    select count(*) as "Instancias" from aws_ec2_instance
+    select 
+      title as label,
+      account_id as value
+    from 
+      aws_account
   EOQ
 }
 
+# Indicadores
+query "ec2_instance_count" {
+  sql = <<-EOQ
+    select count(*) as "Instancias" from aws_ec2_instance where account_id = $1
+  EOQ
+}
+
+# Resumen
+query "ec2_instance_type_count" {
+  sql = <<-EOQ
+    select  
+      instance_type, 
+      count(*) 
+    from 
+      aws_ec2_instance
+    where 
+      account_id = $1
+    group by 
+      instance_type
+  EOQ
+}
+
+query "ec2_instance_region_count" {
+  sql = <<-EOQ
+    select  
+      region, 
+      count(*) 
+    from 
+      aws_ec2_instance
+    where 
+      account_id = $1
+    group by 
+      region
+  EOQ
+}
+
+query "ec2_instance_subnet_count" {
+  sql = <<-EOQ
+    select  
+      subnet_id, 
+      count(*) 
+    from 
+      aws_ec2_instance
+    where 
+      account_id = $1
+    group by 
+      subnet_id
+  EOQ
+}
+
+# Detalles
 query "ec2_instance_details" {
   sql = <<-EOQ
     select 
@@ -57,5 +150,7 @@ query "ec2_instance_details" {
     from 
       aws_ec2_instance as ec2
       join aws_account as acc on ec2.account_id = acc.account_id
+    where 
+      acc.account_id = $1
   EOQ
 }
